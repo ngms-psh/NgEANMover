@@ -59,7 +59,7 @@ param (
     [Parameter(HelpMessage="The folder to move the files from. Default is the Downloads folder")]
     [string]$SourceFolder,
     [Parameter(Mandatory = $true,HelpMessage="URL to the Azure File Share or the drive letter of the mapped drive")]
-    [string]$AzureStorageAccount,
+    [string]$AzureFileShare,
     [Parameter(HelpMessage="Use switch to disable the popup messages for failed and duplicate files")]
     [switch]$DisablePopup,
     [Parameter(HelpMessage="Use switch to enable recursive search in the source folder")]
@@ -301,7 +301,7 @@ Add-NgStartMenuShortcut
 try {
     Write-NgLogMessage Information "-------------------------------------------------------------------[Starting script]-------------------------------------------------------------------"
     Write-NgLogMessage Information "Source folder: '$SourceFolder'"
-    Write-NgLogMessage Information "Azure File Share: '$AzureStorageAccount'"
+    Write-NgLogMessage Information "Azure File Share: '$AzureFileShare'"
     Write-NgLogMessage Information "Archive: '$([bool]$Archive)'"
     write-NgLogMessage Information "ArchivePath: '$ArchivePath'"
     Write-NgLogMessage Information "DisablePopup: '$([bool]$DisablePopup)'"
@@ -322,7 +322,7 @@ try {
 
     # Get the Azure File Share drive letter
     try {
-        $Drive =  $AzureStorageAccount | Get-SproomDrive -ErrorAction Stop
+        $Drive =  $AzureFileShare | Get-SproomDrive -ErrorAction Stop
     }
     # If the drive is not found, show a notification and exit the script
     catch {
