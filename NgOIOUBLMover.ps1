@@ -205,28 +205,6 @@ function Show-NgNotification {
     }
 }
 
-function Add-NgStartMenuShortcut {
-    $FolderName = "NgMS"
-    $FolderPath = "$($env:APPDATA)\Microsoft\Windows\Start Menu\Programs\$FolderName"
-    if(!(Test-Path -Path $FolderPath)){
-        New-Item -Path $FolderPath -ItemType Directory | Out-Null
-        $shell = New-Object -ComObject WScript.Shell
-        $shortcut = $shell.CreateShortcut("$FolderPath\Ng EAN mover.lnk")
-        $shortcut.TargetPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-        $shortcut.Arguments = "-ExecutionPolicy ByPass -WindowStyle Minimized -File `"$PSCommandPath`""
-        $shortcut.IconLocation = "%SystemRoot%\System32\SHELL32.dll,45"
-        $shortcut.Save()
-    }
-}
-
-function Add-NgScheduledTask {
-    $TaskName = "Ng EAN Mover"
-    $TaskDescription = "Move OIOUBL/EAN files from the downloads folder to $SourceFolder"
-    $TaskAction = New-ScheduledTaskAction -Execute "C:\Windows\System32\WindowsPowerShell\v1.0\Powershell.exe" -Argument "-ExecutionPolicy ByPass -WindowStyle Minimized -File `"$PSCommandPath`""
-    $TaskTrigger = New-ScheduledTaskTrigger -AtLogOn
-    $TaskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
-    Register-ScheduledTask -TaskName $TaskName -Action $TaskAction -Trigger $TaskTrigger -Description $TaskDescription -Settings $TaskSettings
-}
 
 function Move-OIOUBLFile {
     param (
@@ -296,7 +274,6 @@ function Move-OIOUBLFile {
 }
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
-Add-NgStartMenuShortcut
 # Start the script
 try {
     Write-NgLogMessage Information "-------------------------------------------------------------------[Starting script]-------------------------------------------------------------------"

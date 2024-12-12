@@ -48,7 +48,7 @@ Param (
     [switch]$DisableScheduledTask,
     [switch]$DisableStartMenuShortcut,
     [switch]$DisableDesktopShortcut,
-    [int]$TaskInterval = 30,
+    [int]$RunInterval = 30,
     [string]$InstallLocation = $env:USERPROFILE,
     [string]$FolderName = "NgOIOUBLMover",
     [switch]$Force
@@ -70,7 +70,7 @@ function Write-NgLogMessage {
     # Pad the message to the maximum length
     $LevelPadded = $Level.PadRight($MaxLength)
 
-    $LogFile = "$LogFolder\$LogFilePrefix$(get-date -Format 'dd-MM-yyyy').log"
+    $LogFile = "$LogFolder\$LogFilePrefix$(get-date -Format 'dd-MM-yyyy_HHmmss').log"
     If (!(Test-Path $LogFolder)) {New-Item -Path $LogFolder -Type Directory -Force | Out-Null}
     foreach ($M in $Message) {
         $Date = Get-Date -Format "dd-MM-yyyy HH:mm:ss"
@@ -84,15 +84,19 @@ function New-NgShortcut {
         [parameter(Mandatory)][string]$ShortcutName,
         [parameter(Mandatory)][string]$ShortLocation,
         [string]$TargetPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
-        [parameter(Mandatory)][string]$ActionCommand,
+        [parameter(Mandatory)][string]$ScriptPath,
+        [parameter(Mandatory)][string]$ScriptParameters,
         [string]$IconLocation = "%SystemRoot%\System32\SHELL32.dll,45",
         [string]$WorkingDirectory = $InstallPath,
         [switch]$Force
     )
-    $Arguments = "-ExecutionPolicy ByPass -WindowStyle Minimized -File `"$ActionCommand`""
+    $Arguments = "-ExecutionPolicy ByPass -WindowStyle Minimized -File `"$ScriptPath`"$ScriptParameters"
     try {
         $ShortcutPath = Join-Path -Path $ShortLocation -ChildPath "$ShortcutName.lnk"
         if (!(Test-Path -Path $ShortcutPath) -or $Force) {
+            if(Test-Path -Path $ShortcutPath){
+                Remove-Item -Path $ShortcutPath -Force
+            }
             $shell = New-Object -ComObject WScript.Shell
             $shortcut = $shell.CreateShortcut($ShortcutPath)
             $shortcut.TargetPath = $TargetPath
@@ -113,7 +117,8 @@ function Add-NgStartMenuShortcut {
     param(
         [string]$ShortcutName = "EAN Mover",
         [string]$StartMenuFolderName = "EAN Mover",
-        [parameter(Mandatory)][string]$ActionCommand
+        [parameter(Mandatory)][string]$ScriptPath,
+        [parameter(Mandatory)][string]$ScriptParameters
     )
 
     $StartMenuFolderPath = "$($env:APPDATA)\Microsoft\Windows\Start Menu\Programs\$StartMenuFolderName"
@@ -122,44 +127,41 @@ function Add-NgStartMenuShortcut {
         write-NgLogMessage -Message "Created start menu folder: '$StartMenuFolderPath'" -Level Information
     }
 
-    New-NgShortcut -ShortcutName $ShortcutName -ShortLocation $StartMenuFolderPath -ActionCommand $ActionCommand
+    New-NgShortcut -ShortcutName $ShortcutName -ShortLocation $StartMenuFolderPath -ScriptPath $ScriptPath -ScriptParameters $ScriptParameters -Force
 }
 
 function Add-NgDesktopShortcut {
     param (
-        [parameter(Mandatory)][string]$ActionCommand,
+        [parameter(Mandatory)][string]$ScriptPath,
+        [parameter(Mandatory)][string]$ScriptParameters,
         [string]$ShortcutName = "EAN Mover"
     )
     $DesktopPath = [Environment]::GetFolderPath("Desktop")
-    New-NgShortcut -ShortcutName $ShortcutName -ShortLocation $DesktopPath -ActionCommand $ActionCommand
+    New-NgShortcut -ShortcutName $ShortcutName -ShortLocation $DesktopPath -ScriptPath $ScriptPath -ScriptParameters $ScriptParameters -Force
 }
 
 function Add-NgScheduledTask {
     param(
         [parameter(Mandatory)][string]$TaskName,
-        [parameter(Mandatory)][string]$ActionCommand,
+        [parameter(Mandatory)][string]$ScriptParameters,
+        [parameter(Mandatory)][string]$ScriptPath,
         [string]$TaskDescription,
         [int]$TaskId = 124563,
         [int]$TaskInterval = 30,
-        [parameter(Mandatory)][System.Object]$TaskAction,
-        [parameter(Mandatory)][System.Object]$TaskTrigger,
-        [parameter(Mandatory)][System.Object]$TaskSettings,
-        [string]$ScriptParameters,
-        [switch]$Disabled,
+        [bool]$Disabled,
         [int]$TimeOut = 15
     )
-    if ($ScriptParameters){$ActionCommand = $ActionCommand + " " + $ScriptParameters}
+    
     try {
-        (Get-Date -Format "HH:mm").AddMinutes(2)
-        $TaskAction = New-ScheduledTaskAction -Execute "C:\Windows\System32\WindowsPowerShell\v1.0\Powershell.exe" -Argument "-ExecutionPolicy ByPass -WindowStyle Minimized -File `"$ActionCommand`"" -WorkingDirectory $InstallPath -Id $TaskId
+        $TaskAction = New-ScheduledTaskAction -Execute "C:\Windows\System32\WindowsPowerShell\v1.0\Powershell.exe" -Argument "-ExecutionPolicy ByPass -WindowStyle Minimized -File `"$ScriptPath`"$ScriptParameters" -WorkingDirectory $InstallPath -Id $TaskId
         $TaskTrigger = New-ScheduledTaskTrigger -Once -at ((Get-Date).AddMinutes(2)) -RepetitionInterval (New-TimeSpan -Minutes $TaskInterval)
-        if($Disabled){
+        if($Disabled -eq $true){
             $TaskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -Hidden -DontStopOnIdleEnd -ExecutionTimeLimit (New-TimeSpan -Minutes $TimeOut) -Disable
         }
         else{
             $TaskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -Hidden -DontStopOnIdleEnd -ExecutionTimeLimit (New-TimeSpan -Minutes $TimeOut)
         }
-        Register-ScheduledTask -TaskName $TaskName -Action $TaskAction -Trigger $TaskTrigger -Description $TaskDescription -Settings $TaskSettings -Force
+        Register-ScheduledTask -TaskName $TaskName -Action $TaskAction -Trigger $TaskTrigger -Description $TaskDescription -Settings $TaskSettings -Force | Out-Null
         write-NgLogMessage -Message "Created scheduled task: '$TaskName'" -Level Information
     }
     catch {
@@ -173,9 +175,12 @@ function Install-NgFiles {
     param(
         [string]$InstallPath,
         [parameter(Mandatory)]
-        [System.Object]$RequiredFiles
+        [System.Object]$RequiredFiles,
+        [parameter(Mandatory)]
+        [System.UriBuilder]$GitHubRawUrl,
+        [parameter(Mandatory)]
+        [System.UriBuilder]$GitHubRepoUrl
     )
-
     $HTTP_RequestRepo = [System.Net.WebRequest]::Create($GitHubRepoUrl.Uri)
 
     
@@ -190,7 +195,16 @@ function Install-NgFiles {
         Write-NgLogMessage -Message "All requiredfiles for NgOIOUBLMover is already installed in '$InstallPath'" -Level Warning
     }
     else{
-        $HTTP_ResponseRepo = $HTTP_RequestRepo.GetResponse()
+        try {
+            $HTTP_ResponseRepo = $HTTP_RequestRepo.GetResponse()
+        }
+        catch {
+            write-NgLogMessage -Message "Unable to connect to $GitHubRawUrl" -Level Error
+            write-Error "Install-NgFiles: Unable to connect to $GitHubRawUrl $_"
+            throw $_
+            exit 1
+        }
+        
         if ([int]$HTTP_ResponseRepo.StatusCode -ne 200){
             write-NgLogMessage -Message "Unable to download files from $GitHubRepoUrl" -Level Error
             exit 1
@@ -201,16 +215,19 @@ function Install-NgFiles {
                 write-NgLogMessage -Message "Downloaded $MissingFile to $InstallPath" -Level Information
             }
             catch {
-                write-NgLogMessage -Message "Unable to download $MissingFile to $InstallPath" -Level Error
-                Write-Error "Install-NgFiles: Unable to download $MissingFile to $InstallPath"
-                return $_.Exception.Message
+                write-NgLogMessage -Message "Unable to download $MissingFile to $InstallPath $_" -Level Error
+                Write-Error "Install-NgFiles: Unable to download $MissingFile to $InstallPath $_"
+                return $_
             }
         }
     }
 }
 
 $TaskName = "NgOIOUBLMover"
-$TaskDescription = "Move OIOUBL/EAN files from the downloads folder to $SourceFolder"
+$TaskDescription = "Move OIOUBL/EAN files from the downloads folder to $AzureFileShare"
+
+$GitHubRepoUrl = "https://github.com/ngms-psh/NgEANMover"
+$GitHubRawUrl = "https://raw.githubusercontent.com/ngms-psh/NgEANMover/main"
 
 $NgScript = "NgOIOUBLMover.ps1"
 $NgInstaller = $MyInvocation.MyCommand.Name
@@ -220,7 +237,7 @@ $RequiredFiles = @($NgInstaller, $NgScript)
 
 $InstallPath = Join-Path -Path $InstallLocation -ChildPath $FolderName
 $NgScriptPath = Join-Path -Path $InstallPath -ChildPath $NgScript
-$ActionCommand = "$NgScriptPath -AzureFileShare `"$AzureFileShare`""
+$NgScriptParameters = " -AzureFileShare `"$AzureFileShare`""
 
 # Set the log folder and log file prefix
 [string]$LogFolder = Join-Path -Path $env:temp -ChildPath $FolderName # Log files will be stored in the temp folder in a folder named NgOIOUBLMover
@@ -228,19 +245,26 @@ $ActionCommand = "$NgScriptPath -AzureFileShare `"$AzureFileShare`""
 
 
 
-[System.UriBuilder]$GitHubRepoUrl = "https://github.com/ngms-psh/NgEANMover"
-$GitHubRawUrl = [uri]::new("https://raw.githubusercontent.com/ngms-psh/NgEANMover/main")
 
-Install-NgFiles -InstallPath $InstallPath -RequiredFiles $RequiredFiles -ErrorAction Stop
+
+try {
+    Install-NgFiles -InstallPath $InstallPath -RequiredFiles $RequiredFiles -GitHubRawUrl $GitHubRawUrl -GitHubRepoUrl $GitHubRepoUrl
+
+}
+catch {
+    Write-Error $_
+    exit 1
+}
+
 
 
 
 if (-not $DisableStartMenuShortcut) {
-    Add-NgStartMenuShortcut -ActionCommand $ActionCommand
+    Add-NgStartMenuShortcut -ScriptPath $NgScriptPath -ScriptParameters $NgScriptParameters
 }
 
 if (-not $DisableDesktopShortcut) {
-    Add-NgDesktopShortcut -ActionCommand $ActionCommand
+    Add-NgDesktopShortcut -ScriptPath $NgScriptPath -ScriptParameters $NgScriptParameters
 }
 
-Add-NgScheduledTask -TaskName $TaskName -ActionCommand $ActionCommand -TaskDescription $TaskDescription -TaskInterval $TaskInterval -TaskId 124563 -Disabled $DisableScheduledTask
+Add-NgScheduledTask -TaskName $TaskName -ScriptPath $NgScriptPath -ScriptParameters $NgScriptParameters -TaskDescription $TaskDescription -TaskInterval $RunInterval -TaskId 124563 -Disabled $DisableScheduledTask -TimeOut 15
