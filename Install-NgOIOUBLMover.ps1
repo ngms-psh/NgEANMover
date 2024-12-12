@@ -230,41 +230,59 @@ $GitHubRepoUrl = "https://github.com/ngms-psh/NgEANMover"
 $GitHubRawUrl = "https://raw.githubusercontent.com/ngms-psh/NgEANMover/main"
 
 $NgScript = "NgOIOUBLMover.ps1"
+$NgScriptParameters = " -AzureFileShare `"$AzureFileShare`""
 $NgInstaller = $MyInvocation.MyCommand.Name
 $RequiredFiles = @($NgInstaller, $NgScript)
 
-
-
-$InstallPath = Join-Path -Path $InstallLocation -ChildPath $FolderName
-$NgScriptPath = Join-Path -Path $InstallPath -ChildPath $NgScript
-$NgScriptParameters = " -AzureFileShare `"$AzureFileShare`""
-
-# Set the log folder and log file prefix
-[string]$LogFolder = Join-Path -Path $env:temp -ChildPath $FolderName # Log files will be stored in the temp folder in a folder named NgOIOUBLMover
+$LogPath = $env:temp
 [string]$LogFilePrefix = "Install_" # Date will be appended to the prefix ex. Install_10-12-2024.log
 
-
-
-
-
 try {
-    Install-NgFiles -InstallPath $InstallPath -RequiredFiles $RequiredFiles -GitHubRawUrl $GitHubRawUrl -GitHubRepoUrl $GitHubRepoUrl
+    write-NgLogMessage -Message "Starting installation of NgOIOUBLMover" -Level Information
+    write-NgLogMessage -Message "Azure File Share: $AzureFileShare" -Level Information
+    write-NgLogMessage -Message "Install location: $InstallLocation" -Level Information
+    write-NgLogMessage -Message "Folder name: $FolderName" -Level Information
+    write-NgLogMessage -Message "Force: $Force" -Level Information
+    write-NgLogMessage -Message "Run interval: $RunInterval" -Level Information
 
+    $InstallPath = Join-Path -Path $InstallLocation -ChildPath $FolderName
+    $NgScriptPath = Join-Path -Path $InstallPath -ChildPath $NgScript
+
+    write-NgLogMessage -Message "Install path: $InstallPath" -Level Information
+    write-NgLogMessage -Message "NgScript path: $NgScriptPath" -Level Information
+
+    # Set the log folder
+    [string]$LogFolder = Join-Path -Path $LogPath -ChildPath $FolderName # Log files will be stored in the temp folder in a folder named NgOIOUBLMover
+    write-NgLogMessage -Message "Log folder: $LogFolder" -Level Information
+
+    try {
+        Install-NgFiles -InstallPath $InstallPath -RequiredFiles $RequiredFiles -GitHubRawUrl $GitHubRawUrl -GitHubRepoUrl $GitHubRepoUrl
+
+    }
+    catch {
+        Write-Error $_
+        exit 1
+    }
+
+
+
+
+    if (-not $DisableStartMenuShortcut) {
+        Add-NgStartMenuShortcut -ScriptPath $NgScriptPath -ScriptParameters $NgScriptParameters
+    }
+
+    if (-not $DisableDesktopShortcut) {
+        Add-NgDesktopShortcut -ScriptPath $NgScriptPath -ScriptParameters $NgScriptParameters
+    }
+
+    Add-NgScheduledTask -TaskName $TaskName -ScriptPath $NgScriptPath -ScriptParameters $NgScriptParameters -TaskDescription $TaskDescription -TaskInterval $RunInterval -TaskId 124563 -Disabled $DisableScheduledTask -TimeOut 15
+    write-NgLogMessage -Message "Installation of NgOIOUBLMover completed" -Level Information
+    [System.Windows.Forms.MessageBox]::Show($THIS, "Installation of NgOIOUBLMover Completed",'OIOUBL Mover','OK','Information')
 }
 catch {
+    write-NgLogMessage -Message "Unable to install NgOIOUBLMover $_" -Level Error
+    [System.Windows.Forms.MessageBox]::Show($THIS, "Installation of NgOIOUBLMover Failed",'OIOUBL Mover','OK','error')
     Write-Error $_
     exit 1
 }
 
-
-
-
-if (-not $DisableStartMenuShortcut) {
-    Add-NgStartMenuShortcut -ScriptPath $NgScriptPath -ScriptParameters $NgScriptParameters
-}
-
-if (-not $DisableDesktopShortcut) {
-    Add-NgDesktopShortcut -ScriptPath $NgScriptPath -ScriptParameters $NgScriptParameters
-}
-
-Add-NgScheduledTask -TaskName $TaskName -ScriptPath $NgScriptPath -ScriptParameters $NgScriptParameters -TaskDescription $TaskDescription -TaskInterval $RunInterval -TaskId 124563 -Disabled $DisableScheduledTask -TimeOut 15
