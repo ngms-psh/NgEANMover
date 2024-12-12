@@ -238,6 +238,8 @@ $LogPath = $env:temp
 [string]$LogFilePrefix = "Install_" # Date will be appended to the prefix ex. Install_10-12-2024.log
 
 try {
+    # Set the log folder
+    [string]$LogFolder = Join-Path -Path $LogPath -ChildPath $FolderName # Log files will be stored in the temp folder in a folder named NgOIOUBLMover
     write-NgLogMessage -Message "Starting installation of NgOIOUBLMover" -Level Information
     write-NgLogMessage -Message "Azure File Share: $AzureFileShare" -Level Information
     write-NgLogMessage -Message "Install location: $InstallLocation" -Level Information
@@ -251,8 +253,7 @@ try {
     write-NgLogMessage -Message "Install path: $InstallPath" -Level Information
     write-NgLogMessage -Message "NgScript path: $NgScriptPath" -Level Information
 
-    # Set the log folder
-    [string]$LogFolder = Join-Path -Path $LogPath -ChildPath $FolderName # Log files will be stored in the temp folder in a folder named NgOIOUBLMover
+
     write-NgLogMessage -Message "Log folder: $LogFolder" -Level Information
 
     try {
