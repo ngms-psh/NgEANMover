@@ -87,7 +87,7 @@ function New-NgShortcut {
         [string]$TargetPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
         [parameter(Mandatory)][string]$ScriptPath,
         [parameter(Mandatory)][string]$ScriptParameters,
-        [string]$IconLocation = "%SystemRoot%\System32\SHELL32.dll,45",
+        [string]$IconLocation = (Join-Path -Path $InstallPath -ChildPath $IconFile),
         [string]$WorkingDirectory = $InstallPath,
         [switch]$Force
     )
