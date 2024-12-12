@@ -124,8 +124,11 @@ function Write-NgLogMessage {
         [validateSet('Error', 'Warning', 'Information')]
         [string]$Level
     )
-    $ParameterList = (Get-Command -Name $MyInvocation.MyCommand).Parameters
-    $MaxLength = ($ParameterList["Level"].Attributes.ValidValues | Sort-Object { $_.Length } -Descending | Select-Object -First 1).Length
+    #$ParameterList = (Get-Command -Name $MyInvocation.MyCommand).Parameters
+    #$MaxLength = ($ParameterList["Level"].Attributes.ValidValues | Sort-Object { $_.Length } -Descending | Select-Object -First 1).Length
+
+    $ParameterList = @('Error', 'Warning', 'Information')
+    $MaxLength = ($ParameterList | Sort-Object { $_.Length } -Descending | Select-Object -First 1).Length
 
     # Pad the message to the maximum length
     $LevelPadded = $Level.PadRight($MaxLength)

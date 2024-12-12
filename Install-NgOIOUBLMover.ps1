@@ -19,7 +19,7 @@
 
 .ICONURI
 
-.EXTERNALMODULEDEPENDENCIES 
+.EXTERNALMODULEDEPENDENCIES ps2exe
 
 .REQUIREDSCRIPTS 081c47a1-20d0-47ab-9d30-2dbac7107499
 
@@ -70,7 +70,7 @@ function Write-NgLogMessage {
     # Pad the message to the maximum length
     $LevelPadded = $Level.PadRight($MaxLength)
 
-    $LogFile = "$LogFolder\$LogFilePrefix$(get-date -Format 'dd-MM-yyyy_HHmmss').log"
+    $LogFile = "$LogFolder\$LogFilePrefix$(get-date -Format 'dd-MM-yyyy_HH').log"
     If (!(Test-Path $LogFolder)) {New-Item -Path $LogFolder -Type Directory -Force | Out-Null}
     foreach ($M in $Message) {
         $Date = Get-Date -Format "dd-MM-yyyy HH:mm:ss"
@@ -179,7 +179,10 @@ function Install-NgFiles {
         [parameter(Mandatory)]
         [System.UriBuilder]$GitHubRawUrl,
         [parameter(Mandatory)]
-        [System.UriBuilder]$GitHubRepoUrl
+        [System.UriBuilder]$GitHubRepoUrl,
+        [parameter(Mandatory)]
+        [string]$Compile,
+        [string]$Icon
     )
     $HTTP_RequestRepo = [System.Net.WebRequest]::Create($GitHubRepoUrl.Uri)
 
@@ -189,7 +192,12 @@ function Install-NgFiles {
         New-Item -Path $InstallPath -ItemType Directory | Out-Null
     }
 
-    $MissingFiles = $RequiredFiles | Where-Object { -not (Test-Path -Path (Join-Path -Path $InstallPath -ChildPath $_)) }
+    if ($Force){
+        $MissingFiles = $RequiredFiles
+    }
+    else{
+        $MissingFiles = $RequiredFiles | Where-Object { -not (Test-Path -Path (Join-Path -Path $InstallPath -ChildPath $_)) }
+    }
 
     if ((!$MissingFiles) -and (!$Force)) {
         Write-NgLogMessage -Message "All requiredfiles for NgOIOUBLMover is already installed in '$InstallPath'" -Level Warning
@@ -220,6 +228,28 @@ function Install-NgFiles {
                 return $_
             }
         }
+
+        try {
+            Set-PSRepository "PSGallery" -InstallationPolicy Trusted
+            Install-Module ps2exe -Scope CurrentUser -Force -AllowClobber
+            Import-Module ps2exe -Force
+            write-NgLogMessage -Message "Installed ps2exe module" -Level Information
+        }
+        catch {
+            write-NgLogMessage -Message "Unable to install ps2exe module $_" -Level Error
+            Write-Error "Install-NgFiles: Unable to install ps2exe module $_"
+            return $_
+        }
+
+        try {
+            Invoke-ps2exe -inputFile $Compile -outputFile "$($Compile -replace '.ps1','.exe')" -title "EAN Mover" -company "NgMS Consult ApS" -version "1.0" -product "NgOIOUBLMover" -copyright "Copyright (c) 2024 - Phillip Schjeldal Hansen | NgMS Consult ApS. All rights reserved." -longPaths -iconFile (Join-Path -Path $InstallPath -ChildPath $Icon) -configFile
+            write-NgLogMessage -Message "Created executable NgOIOUBLMover.exe" -Level Information
+        }
+        catch {
+            write-NgLogMessage -Message "Unable to create executable $_" -Level Error
+            Write-Error "Install-NgFiles: Unable to create executable $_"
+            return $_
+        }
     }
 }
 
@@ -232,7 +262,8 @@ $GitHubRawUrl = "https://raw.githubusercontent.com/ngms-psh/NgEANMover/main"
 $NgScript = "NgOIOUBLMover.ps1"
 $NgScriptParameters = " -AzureFileShare `"$AzureFileShare`""
 $NgInstaller = $MyInvocation.MyCommand.Name
-$RequiredFiles = @($NgInstaller, $NgScript)
+$IconFile = "Icon.ico"
+$RequiredFiles = @($NgInstaller, $NgScript, $IconFile)
 
 $LogPath = $env:temp
 [string]$LogFilePrefix = "Install_" # Date will be appended to the prefix ex. Install_10-12-2024.log
@@ -242,7 +273,7 @@ try {
     [string]$LogFolder = Join-Path -Path $LogPath -ChildPath $FolderName # Log files will be stored in the temp folder in a folder named NgOIOUBLMover
     write-NgLogMessage -Message "Starting installation of NgOIOUBLMover" -Level Information
     write-NgLogMessage -Message "Azure File Share: $AzureFileShare" -Level Information
-    write-NgLogMessage -Message "Install location: $InstallLocation" -Level Information
+    write-NgLogMessage -Message "Install location: $InstallLocation\$FolderName" -Level Information
     write-NgLogMessage -Message "Folder name: $FolderName" -Level Information
     write-NgLogMessage -Message "Force: $Force" -Level Information
     write-NgLogMessage -Message "Run interval: $RunInterval" -Level Information
@@ -250,22 +281,16 @@ try {
     $InstallPath = Join-Path -Path $InstallLocation -ChildPath $FolderName
     $NgScriptPath = Join-Path -Path $InstallPath -ChildPath $NgScript
 
+    
+
     write-NgLogMessage -Message "Install path: $InstallPath" -Level Information
     write-NgLogMessage -Message "NgScript path: $NgScriptPath" -Level Information
 
 
     write-NgLogMessage -Message "Log folder: $LogFolder" -Level Information
 
-    try {
-        Install-NgFiles -InstallPath $InstallPath -RequiredFiles $RequiredFiles -GitHubRawUrl $GitHubRawUrl -GitHubRepoUrl $GitHubRepoUrl
 
-    }
-    catch {
-        Write-Error $_
-        exit 1
-    }
-
-
+    Install-NgFiles -InstallPath $InstallPath -RequiredFiles $RequiredFiles -GitHubRawUrl $GitHubRawUrl -GitHubRepoUrl $GitHubRepoUrl -Compile $NgScriptPath -Icon $IconFile -ErrorAction Stop
 
 
     if (-not $DisableStartMenuShortcut) {
