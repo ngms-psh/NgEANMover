@@ -43,7 +43,6 @@
 #requires -PSEdition Desktop
 [CmdletBinding()]
 Param (
-    [Parameter(Mandatory = $true,HelpMessage="URL to the Azure File Share or the drive letter of the mapped drive")]
     [validateSet('exe', 'ps1')]
     [string]$Type = "exe",
     [string]$AzureFileShare,
@@ -171,7 +170,7 @@ function Add-NgScheduledTask {
         $Execute = "C:\Windows\System32\WindowsPowerShell\v1.0\Powershell.exe"
         $Argument = "-ExecutionPolicy ByPass -WindowStyle Minimized -File `"$ScriptPath`"$ScriptParameters"
     }
-    
+
     write-NgLogMessage -Message "Execute: $Execute" -Level Information
     write-NgLogMessage -Message "Argument: $Argument" -Level Information
 
