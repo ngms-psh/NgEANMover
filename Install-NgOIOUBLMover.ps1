@@ -44,6 +44,8 @@
 [CmdletBinding()]
 Param (
     [Parameter(Mandatory = $true,HelpMessage="URL to the Azure File Share or the drive letter of the mapped drive")]
+    [validateSet('exe', 'ps1')]
+    [string]$Type = "exe",
     [string]$AzureFileShare,
     [switch]$DisableScheduledTask,
     [switch]$DisableStartMenuShortcut,
@@ -90,7 +92,15 @@ function New-NgShortcut {
         [string]$WorkingDirectory = $InstallPath,
         [switch]$Force
     )
-    $Arguments = "-ExecutionPolicy ByPass -WindowStyle Minimized -File `"$ScriptPath`"$ScriptParameters"
+    if ($Type -eq "exe") {
+        $TargetPath = $NgScriptPath -replace '.ps1','.exe'
+        $Argument = $ScriptParameters
+    }
+    else{
+        $TargetPath = "C:\Windows\System32\WindowsPowerShell\v1.0\Powershell.exe"
+        $Argument = "-ExecutionPolicy ByPass -WindowStyle Minimized -File `"$ScriptPath`"$ScriptParameters"
+    }
+
     try {
         $ShortcutPath = Join-Path -Path $ShortLocation -ChildPath "$ShortcutName.lnk"
         if (!(Test-Path -Path $ShortcutPath) -or $Force) {
@@ -100,7 +110,7 @@ function New-NgShortcut {
             $shell = New-Object -ComObject WScript.Shell
             $shortcut = $shell.CreateShortcut($ShortcutPath)
             $shortcut.TargetPath = $TargetPath
-            $shortcut.Arguments = $Arguments
+            $shortcut.Arguments = $Argument
             $shortcut.IconLocation = $IconLocation
             $shortcut.WorkingDirectory = $WorkingDirectory
             $shortcut.Save()
@@ -151,9 +161,22 @@ function Add-NgScheduledTask {
         [bool]$Disabled,
         [int]$TimeOut = 15
     )
+
+    if ($Type -eq "exe") {
+        $Execute = $NgScriptPath -replace '.ps1','.exe'
+        $Argument = $ScriptParameters
+
+    }
+    else{
+        $Execute = "C:\Windows\System32\WindowsPowerShell\v1.0\Powershell.exe"
+        $Argument = "-ExecutionPolicy ByPass -WindowStyle Minimized -File `"$ScriptPath`"$ScriptParameters"
+    }
     
+    write-NgLogMessage -Message "Execute: $Execute" -Level Information
+    write-NgLogMessage -Message "Argument: $Argument" -Level Information
+
     try {
-        $TaskAction = New-ScheduledTaskAction -Execute "C:\Windows\System32\WindowsPowerShell\v1.0\Powershell.exe" -Argument "-ExecutionPolicy ByPass -WindowStyle Minimized -File `"$ScriptPath`"$ScriptParameters" -WorkingDirectory $InstallPath -Id $TaskId
+        $TaskAction = New-ScheduledTaskAction -Execute $Execute -Argument $Argument -WorkingDirectory $InstallPath -Id $TaskId
         $TaskTrigger = New-ScheduledTaskTrigger -Once -at ((Get-Date).AddMinutes(2)) -RepetitionInterval (New-TimeSpan -Minutes $TaskInterval)
         if($Disabled -eq $true){
             $TaskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -Hidden -DontStopOnIdleEnd -ExecutionTimeLimit (New-TimeSpan -Minutes $TimeOut) -Disable
@@ -228,27 +251,28 @@ function Install-NgFiles {
                 return $_
             }
         }
-
-        try {
-            Set-PSRepository "PSGallery" -InstallationPolicy Trusted
-            Install-Module ps2exe -Scope CurrentUser -Force -AllowClobber
-            Import-Module ps2exe -Force
-            write-NgLogMessage -Message "Installed ps2exe module" -Level Information
-        }
-        catch {
-            write-NgLogMessage -Message "Unable to install ps2exe module $_" -Level Error
-            Write-Error "Install-NgFiles: Unable to install ps2exe module $_"
-            return $_
-        }
-
-        try {
-            Invoke-ps2exe -inputFile $Compile -outputFile "$($Compile -replace '.ps1','.exe')" -title "EAN Mover" -company "NgMS Consult ApS" -version "1.0" -product "NgOIOUBLMover" -copyright "Copyright (c) 2024 - Phillip Schjeldal Hansen | NgMS Consult ApS. All rights reserved." -longPaths -iconFile (Join-Path -Path $InstallPath -ChildPath $Icon) -configFile
-            write-NgLogMessage -Message "Created executable NgOIOUBLMover.exe" -Level Information
-        }
-        catch {
-            write-NgLogMessage -Message "Unable to create executable $_" -Level Error
-            Write-Error "Install-NgFiles: Unable to create executable $_"
-            return $_
+        if ($Type -eq "exe") {
+            try {
+                Set-PSRepository "PSGallery" -InstallationPolicy Trusted
+                Install-Module ps2exe -Scope CurrentUser -Force -AllowClobber
+                Import-Module ps2exe -Force
+                write-NgLogMessage -Message "Installed ps2exe module" -Level Information
+            }
+            catch {
+                write-NgLogMessage -Message "Unable to install ps2exe module $_" -Level Error
+                Write-Error "Install-NgFiles: Unable to install ps2exe module $_"
+                return $_
+            }
+    
+            try {
+                Invoke-ps2exe -inputFile $Compile -outputFile "$($Compile -replace '.ps1','.exe')" -title "EAN Mover" -company "NgMS Consult ApS" -version "1.0" -product "NgOIOUBLMover" -copyright "Copyright (c) 2024 - Phillip Schjeldal Hansen | NgMS Consult ApS. All rights reserved." -longPaths -iconFile (Join-Path -Path $InstallPath -ChildPath $Icon) -configFile
+                write-NgLogMessage -Message "Created executable NgOIOUBLMover.exe" -Level Information
+            }
+            catch {
+                write-NgLogMessage -Message "Unable to create executable $_" -Level Error
+                Write-Error "Install-NgFiles: Unable to create executable $_"
+                return $_
+            }
         }
     }
 }
