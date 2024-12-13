@@ -71,7 +71,7 @@ function Write-NgLogMessage {
     # Pad the message to the maximum length
     $LevelPadded = $Level.PadRight($MaxLength)
 
-    $LogFile = "$LogFolder\$LogFilePrefix$(get-date -Format 'dd-MM-yyyy_HH').log"
+    $LogFile = "$LogFolder\$LogFilePrefix$StartTime.log"
     If (!(Test-Path $LogFolder)) {New-Item -Path $LogFolder -Type Directory -Force | Out-Null}
     foreach ($M in $Message) {
         $Date = Get-Date -Format "dd-MM-yyyy HH:mm:ss"
@@ -293,6 +293,7 @@ $LogPath = $env:temp
 try {
     # Set the log folder
     [string]$LogFolder = Join-Path -Path $LogPath -ChildPath $FolderName # Log files will be stored in the temp folder in a folder named NgOIOUBLMover
+    $StartTime = Get-Date -Format "dd-MM-yyyy_HHmmss"
     write-NgLogMessage -Message "Starting installation of NgOIOUBLMover" -Level Information
     write-NgLogMessage -Message "Azure File Share: $AzureFileShare" -Level Information
     write-NgLogMessage -Message "Install location: $InstallLocation\$FolderName" -Level Information
