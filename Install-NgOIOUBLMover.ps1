@@ -282,7 +282,7 @@ $GitHubRepoUrl = "https://github.com/ngms-psh/NgEANMover"
 $GitHubRawUrl = "https://raw.githubusercontent.com/ngms-psh/NgEANMover/main"
 
 $NgScript = "NgOIOUBLMover.ps1"
-$NgScriptParameters = " -AzureFileShare `"$AzureFileShare`""
+$NgScriptParameters = " -AzureFileShare `"$AzureFileShare`" -Archive"
 $NgInstaller = $MyInvocation.MyCommand.Name
 $IconFile = "Icon.ico"
 $RequiredFiles = @($NgInstaller, $NgScript, $IconFile)
