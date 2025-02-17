@@ -73,7 +73,7 @@ param (
 )
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
 
-if (!$SourceFolder) {$SourceFolder = Get-ItemPropertyValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders' -Name "{374DE290-123F-4565-9164-39C4925E467B}"}
+
 
 # Set the log folder and log file prefix
 [string]$LogFolder = "$($env:temp)\NgOIOUBLMover" # Log files will be stored in the temp folder in a folder named NgOIOUBLMover
@@ -300,12 +300,66 @@ try {
         Status = [string]::Empty
     }
 
+    # Check if the source folder exists
+    if ($SourceFolder){
+        if (!(Test-Path $SourceFolder)) {
+            Write-NgLogMessage -Level Error -Message "Source folder '$SourceFolder' does not exist, terminating script"
+            Show-NgNotification -ToastTitle "Results - Failed" -ToastText "Source folder '$SourceFolder' does not exist"
+            $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to move EAN files, Source folder '$SourceFolder' does not exist`nShow log details?",'OIOUBL Mover','YesNo','error')
+            if ($ShowError -eq 'Yes') {
+                Open-NgLogFile Failed
+            }
+            exit "Source folder '$SourceFolder' does not exist"
+        }
+    }
+    # else use the downloads folder
+    else {
+        try {
+            $SourceFolder = Get-ItemPropertyValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders' -Name "{374DE290-123F-4565-9164-39C4925E467B}"
+        }
+        catch {
+            try {
+                $SourceFolder = (New-Object -ComObject Shell.Application).Namespace('shell:Downloads').Self.Path
+                if (!(Test-Path $SourceFolder)) {
+                    if (Test-Path "$env:USERPROFILE\Downloads") {
+                        $SourceFolder = "$env:USERPROFILE\Downloads"
+                    }
+                    else {
+                        Write-NgLogMessage -Level Error -Message "Cannot find the Downloads folder, terminating script"
+                        Show-NgNotification -ToastTitle "Results - Failed" -ToastText "Cannot find the Downloads folder"
+                        $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to move EAN files, Cannot find the Downloads folder`nShow log details?",'OIOUBL Mover','YesNo','error')
+                        if ($ShowError -eq 'Yes') {
+                            Open-NgLogFile Failed
+                        }
+                        exit $_.Exception.Message
+                    }
+                }
+            }
+            catch {
+                if (Test-Path "$env:USERPROFILE\Downloads") {
+                    $SourceFolder = "$env:USERPROFILE\Downloads"
+                }
+                else {
+                    Write-NgLogMessage -Level Error -Message "Cannot find the Downloads folder, terminating script"
+                    Show-NgNotification -ToastTitle "Results - Failed" -ToastText "Cannot find the Downloads folder"
+                    $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to move EAN files, Cannot find the Downloads folder`nShow log details?",'OIOUBL Mover','YesNo','error')
+                    if ($ShowError -eq 'Yes') {
+                        Open-NgLogFile Failed
+                    }
+                    exit $_.Exception.Message
+                }
+            }
+        }
+        
+    }
+
     # Get the Azure File Share drive letter
     try {
         $Drive =  $AzureFileShare | Get-SproomDrive -ErrorAction Stop
     }
     # If the drive is not found, show a notification and exit the script
     catch {
+        Write-NgLogMessage -Level Error -Message "Cannot find Azure File Share, terminating script"
         Show-NgNotification -ToastTitle "Results - Failed" -ToastText "Cannot find the Azure File Share"
         exit $_.Exception.Message
     }
