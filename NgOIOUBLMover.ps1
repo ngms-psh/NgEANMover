@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.1
+.VERSION 1.1.1
 
 .GUID 081c47a1-20d0-47ab-9d30-2dbac7107499
 
@@ -80,6 +80,7 @@ param (
 [string]$LogFilePrefix = "Move_" # Date will be appended to the prefix ex. Move_10-12-2024.log
 [int]$RetainLogs = 30 # Number of days to retain the log files
 
+Add-Type -AssemblyName PresentationCore,PresentationFramework
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 function Get-SproomDrive {
@@ -300,6 +301,15 @@ try {
         Status = [string]::Empty
     }
 
+    #check if the proccess is already running
+    if (Get-Process -Name "EAN Mover", "NgOIOUBLMover" -ErrorAction SilentlyContinue) {
+        Write-NgLogMessage -Level Error -Message "Process already running, terminating script"
+        Show-NgNotification -ToastTitle "Results - Failed" -ToastText "Process already running"
+        $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "EAN Mover already running`nPlease wait for it to complete before running EAN Mover again",'OIOUBL Mover','OK','error')
+        exit "Process already running"
+    }
+
+
     # Check if the source folder exists
     if ($SourceFolder){
         if (!(Test-Path $SourceFolder)) {
@@ -371,6 +381,10 @@ try {
     if($Recurse){$ImportFiles = Get-ChildItem -Path $SourceFolder -Filter "*.xml" -Force -Recurse}
     else {$ImportFiles = Get-ChildItem -Path $SourceFolder -Filter "*.xml" -Force}
     #---------------------------------------------------------------------------------
+
+
+    ##ZIP##
+
 
 
     # Check if any XML files are found in the source folder
