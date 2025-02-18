@@ -302,7 +302,7 @@ try {
     }
 
     #check if the proccess is already running
-    if (Get-Process -Name "EAN Mover", "NgOIOUBLMover" -ErrorAction SilentlyContinue) {
+    if ((Get-Process -Name "NgOIOUBLMover" -ErrorAction SilentlyContinue).count -gt 1) {
         Write-NgLogMessage -Level Error -Message "Process already running, terminating script"
         Show-NgNotification -ToastTitle "Results - Failed" -ToastText "Process already running"
         $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "EAN Mover already running`nPlease wait for it to complete before running EAN Mover again",'OIOUBL Mover','OK','error')
