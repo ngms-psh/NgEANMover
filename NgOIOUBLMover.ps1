@@ -219,7 +219,7 @@ function Open-NgLogFile {
         Invoke-Item $LogFile
     }
     catch {
-        [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to open log file '$LogFile'",'EAN Mover','OK','warning')
+        [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to open log file '$LogFile'",'EAN Mover','OK','warning','Button1','ServiceNotification')
     }
 }
 
@@ -596,7 +596,7 @@ try {
         Write-NgLogMessage -Level Error -Message "Process already running, terminating script"
         Write-NgLogMessage Information "--------------------------------------------------------------[Script - failed]--------------------------------------------------------------"
         Show-NgNotification -ToastTitle "Results - Failed" -ToastText "Process already running"
-        $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "EAN Mover already running`nPlease wait for it to complete before running EAN Mover again",'EAN Mover','OK','error')
+        $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "EAN Mover already running`nPlease wait for it to complete before running EAN Mover again",'EAN Mover','OK','error','Button1','ServiceNotification')
         exit "Process already running"
     }
     
@@ -609,7 +609,7 @@ try {
         if (!(Test-Path $SourceFolder)) {
             Write-NgLogMessage -Level Error -Message "Source folder '$SourceFolder' does not exist, terminating script"
             Show-NgNotification -ToastTitle "Results - Failed" -ToastText "Source folder '$SourceFolder' does not exist"
-            $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to move EAN files, Source folder '$SourceFolder' does not exist`nShow log details?",'EAN Mover','YesNo','error')
+            $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to move EAN files, Source folder '$SourceFolder' does not exist`nShow log details?",'EAN Mover','YesNo','error','Button1','ServiceNotification')
             if ($ShowError -eq 'Yes') {
                 Open-NgLogFile Failed
             }
@@ -631,7 +631,7 @@ try {
                     else {
                         Write-NgLogMessage -Level Error -Message "Cannot find the Downloads folder, terminating script"
                         Show-NgNotification -ToastTitle "Results - Failed" -ToastText "Cannot find the Downloads folder"
-                        $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to move EAN files, Cannot find the Downloads folder`nShow log details?",'EAN Mover','YesNo','error')
+                        $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to move EAN files, Cannot find the Downloads folder`nShow log details?",'EAN Mover','YesNo','error','Button1','ServiceNotification')
                         if ($ShowError -eq 'Yes') {
                             Open-NgLogFile Failed
                         }
@@ -646,7 +646,7 @@ try {
                 else {
                     Write-NgLogMessage -Level Error -Message "Cannot find the Downloads folder, terminating script"
                     Show-NgNotification -ToastTitle "Results - Failed" -ToastText "Cannot find the Downloads folder"
-                    $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to move EAN files, Cannot find the Downloads folder`nShow log details?",'EAN Mover','YesNo','error')
+                    $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to move EAN files, Cannot find the Downloads folder`nShow log details?",'EAN Mover','YesNo','error','Button1','ServiceNotification')
                     if ($ShowError -eq 'Yes') {
                         Open-NgLogFile Failed
                     }
@@ -704,7 +704,7 @@ try {
         Write-NgLogMessage -Level Error -Message "Failed to scan for OIOUBL files, terminating script"
         Write-NgLogMessage -Level Error -Message "$_"
         Show-NgNotification -ToastTitle "Results - Failed" -ToastText "Failed to scan for OIOUBL files"
-        $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to scan for OIOUBL files`nShow log details?",'EAN Mover','YesNo','error')
+        $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to scan for OIOUBL files`nShow log details?",'EAN Mover','YesNo','error','Button1','ServiceNotification')
         if ($ShowError -eq 'Yes') {
             Open-NgLogFile Failed
         }
@@ -732,7 +732,7 @@ try {
     if (!$DisablePopup) {
         # Display MessageBox with failed Files and promt to open log file
         if ($Results.FailedFiles -ne 0) {
-            $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to move '$($Results.FailedFiles)' EAN files `nShow log details?",'EAN Mover','YesNo','error')
+            $ShowError = [System.Windows.Forms.MessageBox]::Show($THIS, "Failed to move '$($Results.FailedFiles)' EAN files `nShow log details?",'EAN Mover','YesNo','error','Button1','ServiceNotification')
             if ($ShowError -eq 'Yes') {
                 Open-NgLogFile Failed
             }
@@ -741,7 +741,7 @@ try {
 
         # Display MessageBox with duplicate Files and promt to open log file
         if ($Results.SkippedOIOUBLFiles -ne 0) {
-            $ShowSkipped = [System.Windows.Forms.MessageBox]::Show($THIS, "Skipped '$($Results.SkippedOIOUBLFiles)' OIOUBL file(s), already exists in destination folder`n`nCheck for duplicates or contact sproom to verify they have connection to SFTP`n`nShow log details?",'EAN Mover','YesNo','warning')
+            $ShowSkipped = [System.Windows.Forms.MessageBox]::Show($THIS, "Skipped '$($Results.SkippedOIOUBLFiles)' OIOUBL file(s), already exists in destination folder`n`nCheck for duplicates or contact sproom to verify they have connection to SFTP`n`nShow log details?",'EAN Mover','YesNo','warning','Button1','ServiceNotification')
             if ($ShowSkipped -eq 'Yes') {
                 Open-NgLogFile Duplicates
             }

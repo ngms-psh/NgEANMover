@@ -342,7 +342,7 @@ try {
     #check if NgOIOUBLMover is already running
     if ((Get-Process -Name "NgOIOUBLMover" -ErrorAction SilentlyContinue).count -gt 0) {
         Write-Host "EAN Mover already running`nPlease wait for it to complete and start the installation again`nTerminating installation" -ForegroundColor Red
-        [System.Windows.Forms.MessageBox]::Show($THIS, "EAN Mover already running`nPlease wait for it to complete and start the installation again",'EAN Mover','OK','error')
+        [System.Windows.Forms.MessageBox]::Show($THIS, "EAN Mover already running`nPlease wait for it to complete and start the installation again",'EAN Mover','OK','error','Button1','ServiceNotification')
         exit "Process already running"
     }
     write-host "Success: EAN Mover is not running`nInstallation will continue" -ForegroundColor Green
@@ -391,11 +391,13 @@ try {
     Write-Host "##############################################"
 
 
-    [System.Windows.Forms.MessageBox]::Show($THIS, "Installation of NgOIOUBLMover Completed`nInitial run starting in 2 minutes",'OIOUBL Mover','OK','Information')
+    [System.Windows.Forms.MessageBox]::Show($THIS, "Installation of NgOIOUBLMover Completed`nInitial run starting in 2 minutes",'OIOUBL Mover','OK','Information','Button1','ServiceNotification')
 }
 catch {
     write-NgLogMessage -Message "Unable to install NgOIOUBLMover $_" -Level Error
-    [System.Windows.Forms.MessageBox]::Show($THIS, "Installation of NgOIOUBLMover Failed",'OIOUBL Mover','OK','error')
+    #[System.Windows.Forms.MessageBox]::Show($THIS, "Installation of NgOIOUBLMover Failed",'OIOUBL Mover','OK','error')
+    [System.Windows.Forms.MessageBox]::Show($THIS, "Installation of NgOIOUBLMover Failed",'OIOUBL Mover','OK','error','Button1','ServiceNotification')
+
     Write-Error $_
     exit 1
 }
