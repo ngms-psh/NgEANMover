@@ -240,7 +240,12 @@ function Install-NgFiles {
         }
         if ($Force){
             try {
-                Invoke-WebRequest -Uri $GitHubRawUrl.Uri -OutFile (Join-Path -Path $InstallPath -ChildPath "NgEANMover.Zip")
+                Remove-Item $InstallPath -Recurse -Force
+                Invoke-WebRequest -Uri $GitHubRawUrl.Uri -OutFile (Join-Path -Path $InstallLocation -ChildPath "NgEANMover.Zip")
+                Expand-Archive (Join-Path -Path $InstallLocation -ChildPath "NgEANMover.Zip") $InstallLocation
+                Move-Item (Join-Path -Path $InstallLocation -ChildPath "NgEANMover-main") $InstallPath -Force
+                Remove-Item (Join-Path -Path $InstallLocation -ChildPath "NgEANMover.Zip")
+
                 write-NgLogMessage -Message "Downloaded $($GitHubRawUrl.Uri) to $(Join-Path -Path $InstallPath -ChildPath 'NgEANMover.Zip')" -Level Information
             }
             catch {
@@ -254,6 +259,7 @@ function Install-NgFiles {
             foreach ($MissingFile in $MissingFiles) {
                 try {
                     Invoke-WebRequest -Uri "$($GitHubRawUrl.Uri)/$MissingFile" -OutFile (Join-Path -Path $InstallPath -ChildPath $MissingFile)
+                    
                     write-NgLogMessage -Message "Downloaded $MissingFile to $InstallPath" -Level Information
                 }
                 catch {
