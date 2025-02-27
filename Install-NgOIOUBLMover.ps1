@@ -55,6 +55,8 @@ Param (
     [switch]$Force
 )
 
+Add-Type -AssemblyName PresentationCore,PresentationFramework,System.Windows.Forms
+
 function Write-NgLogMessage {
     [CmdletBinding()]
     param (
