@@ -342,7 +342,7 @@ try {
     write-NgLogMessage -Message "Log folder: $LogFolder" -Level Information
 
 
-    Install-NgFiles -InstallPath $InstallPath -RequiredFiles $RequiredFiles -GitHubRawUrl $GitHubRawUrl -GitHubRepoUrl $GitHubRepoUrl -Compile $NgScriptPath -Icon $IconFile -Force -ErrorAction Stop
+    Install-NgFiles -InstallPath $InstallPath -RequiredFiles $RequiredFiles -GitHubRawUrl $GitHubRawUrl -GitHubRepoUrl $GitHubRepoUrl -Compile $NgScriptPath -Icon $IconFile -ErrorAction Stop
 
 
     if (-not $DisableStartMenuShortcut) {
