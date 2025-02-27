@@ -590,7 +590,7 @@ function Get-OIOUBL {
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 # Start the script
 try {
-
+    Write-NgLogMessage Information "-------------------------------------------------------------------[Starting script]-------------------------------------------------------------------"
     #check if the proccess is already running
     if ((Get-Process -Name "NgOIOUBLMover" -ErrorAction SilentlyContinue).count -gt 1) {
         Write-NgLogMessage -Level Error -Message "Process already running, terminating script"
@@ -678,7 +678,6 @@ try {
     }
 
     # Write the start message to the log file
-    Write-NgLogMessage Information "-------------------------------------------------------------------[Starting script]-------------------------------------------------------------------"
     Write-NgLogMessage Information "Source folder: '$SourceFolder'"
     Write-NgLogMessage Information "Azure File Share: '$AzureFileShare'"
     Write-NgLogMessage Information "Destination: '$Drive'"
@@ -754,7 +753,6 @@ try {
         {$_.FailedFiles -ne 0} { $Results.Status = "Failed" }
 
     }
-    write-host ($Results | out-string)
     Show-NgNotification -ToastTitle "Results - $($Results.Status)" -ToastText "Success: $($Results.MovedFiles)`nOther files: $($Results.NonOIOUBL)`nDuplicates: $($Results.SkippedOIOUBLFiles)`nFailed: $($Results.FailedFiles)`nTotal: $($Results.TotalFiles)"
     Clear-NgOldLog -OlderThanDays $RetainLogs
     Write-NgLogMessage Information "Results: '$($Results.TotalFiles)' files processed, '$($Results.MovedFiles)' moved, '$($Results.FailedFiles)' failed, '$($Results.SkippedOIOUBLFiles)' duplicate, '$($Results.NonOIOUBL)' non-OIOUBL files"
