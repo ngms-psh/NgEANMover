@@ -238,17 +238,32 @@ function Install-NgFiles {
             write-NgLogMessage -Message "Unable to download files from $GitHubRepoUrl" -Level Error
             exit 1
         }
-        foreach ($MissingFile in $MissingFiles) {
+        if ($Force){
             try {
-                Invoke-WebRequest -Uri "$($GitHubRawUrl.Uri)/$MissingFile" -OutFile (Join-Path -Path $InstallPath -ChildPath $MissingFile)
-                write-NgLogMessage -Message "Downloaded $MissingFile to $InstallPath" -Level Information
+                Invoke-WebRequest -Uri $GitHubRawUrl.Uri -OutFile (Join-Path -Path $InstallPath -ChildPath "NgEANMover.Zip")
+                write-NgLogMessage -Message "Downloaded $($GitHubRawUrl.Uri) to $(Join-Path -Path $InstallPath -ChildPath 'NgEANMover.Zip')" -Level Information
             }
             catch {
-                write-NgLogMessage -Message "Unable to download $MissingFile to $InstallPath $_" -Level Error
-                Write-Error "Install-NgFiles: Unable to download $MissingFile to $InstallPath $_"
+                write-NgLogMessage -Message "Unable to download $($GitHubRawUrl.Uri) to $InstallPath $_" -Level Error
+                Write-Error "Install-NgFiles: Unable to download $($GitHubRawUrl.Uri) to $InstallPath $_"
                 return $_
             }
         }
+
+        else {
+            foreach ($MissingFile in $MissingFiles) {
+                try {
+                    Invoke-WebRequest -Uri "$($GitHubRawUrl.Uri)/$MissingFile" -OutFile (Join-Path -Path $InstallPath -ChildPath $MissingFile)
+                    write-NgLogMessage -Message "Downloaded $MissingFile to $InstallPath" -Level Information
+                }
+                catch {
+                    write-NgLogMessage -Message "Unable to download $MissingFile to $InstallPath $_" -Level Error
+                    Write-Error "Install-NgFiles: Unable to download $MissingFile to $InstallPath $_"
+                    return $_
+                }
+            }
+        }
+        
         if ($Type -eq "exe") {
             try {
                 Set-PSRepository "PSGallery" -InstallationPolicy Trusted
@@ -263,7 +278,7 @@ function Install-NgFiles {
             }
     
             try {
-                Invoke-ps2exe -inputFile $Compile -outputFile "$($Compile -replace '.ps1','.exe')" -title "EAN Mover" -company "NgMS Consult ApS" -version "1.0" -product "NgOIOUBLMover" -noConsole -copyright "Copyright (c) 2024 - Phillip Schjeldal Hansen | NgMS Consult ApS. All rights reserved." -longPaths -iconFile (Join-Path -Path $InstallPath -ChildPath $Icon) -configFile
+                Invoke-ps2exe -inputFile $Compile -outputFile "$($Compile -replace '.ps1','.exe')" -title "EAN Mover" -company "NgMS Consult ApS" -version "2.0" -product "NgOIOUBLMover" -noConsole -copyright "Copyright (c) 2024 - Phillip Schjeldal Hansen | NgMS Consult ApS. All rights reserved." -longPaths -iconFile (Join-Path -Path $InstallPath -ChildPath $Icon) -configFile
                 write-NgLogMessage -Message "Created executable NgOIOUBLMover.exe" -Level Information
             }
             catch {
@@ -279,7 +294,7 @@ $TaskName = "NgOIOUBLMover"
 $TaskDescription = "Move OIOUBL/EAN files from the downloads folder to $AzureFileShare"
 
 $GitHubRepoUrl = "https://github.com/ngms-psh/NgEANMover"
-$GitHubRawUrl = "https://raw.githubusercontent.com/ngms-psh/NgEANMover/main"
+$GitHubRawUrl = "https://github.com/ngms-psh/NgEANMover/archive/refs/heads/main.zip"
 
 $NgScript = "NgOIOUBLMover.ps1"
 $NgScriptParameters = " -AzureFileShare `"$AzureFileShare`" -Archive"
@@ -319,7 +334,7 @@ try {
     write-NgLogMessage -Message "Log folder: $LogFolder" -Level Information
 
 
-    Install-NgFiles -InstallPath $InstallPath -RequiredFiles $RequiredFiles -GitHubRawUrl $GitHubRawUrl -GitHubRepoUrl $GitHubRepoUrl -Compile $NgScriptPath -Icon $IconFile -ErrorAction Stop
+    Install-NgFiles -InstallPath $InstallPath -RequiredFiles $RequiredFiles -GitHubRawUrl $GitHubRawUrl -GitHubRepoUrl $GitHubRepoUrl -Compile $NgScriptPath -Icon $IconFile -Force -ErrorAction Stop
 
 
     if (-not $DisableStartMenuShortcut) {
