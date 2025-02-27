@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.0
+.VERSION 1.1
 
 .GUID b00572a7-8e47-4c57-9be2-b0ccad3fa98f
 
@@ -37,7 +37,7 @@
 <# 
 
 .DESCRIPTION 
- Install script NgOIOBULMover from nuget, creates shortcuts and optional scheaduled task 
+ Install script NgOIOBULMover from Github, creates shortcuts and optional scheaduled task 
 
 #> 
 #requires -PSEdition Desktop
@@ -291,6 +291,12 @@ $LogPath = $env:temp
 [string]$LogFilePrefix = "Install_" # Date will be appended to the prefix ex. Install_10-12-2024.log
 
 try {
+    #check if NgOIOUBLMover is already running
+    if ((Get-Process -Name "NgOIOUBLMover" -ErrorAction SilentlyContinue).count -gt 0) {
+        [System.Windows.Forms.MessageBox]::Show($THIS, "EAN Mover already running`nPlease wait for it to complete and start the installation again",'EAN Mover','OK','error')
+        exit "Process already running"
+    }
+
     # Set the log folder
     [string]$LogFolder = Join-Path -Path $LogPath -ChildPath $FolderName # Log files will be stored in the temp folder in a folder named NgOIOUBLMover
     $StartTime = Get-Date -Format "dd-MM-yyyy_HHmmss"
