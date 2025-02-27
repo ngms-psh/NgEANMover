@@ -391,7 +391,7 @@ try {
     Write-Host "##############################################"
 
 
-    [System.Windows.Forms.MessageBox]::Show($THIS, "Installation of NgOIOUBLMover Completed",'OIOUBL Mover','OK','Information')
+    [System.Windows.Forms.MessageBox]::Show($THIS, "Installation of NgOIOUBLMover Completed`nInitial run starting in 2 minutes",'OIOUBL Mover','OK','Information')
 }
 catch {
     write-NgLogMessage -Message "Unable to install NgOIOUBLMover $_" -Level Error
