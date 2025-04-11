@@ -1,10 +1,11 @@
 enum NgSourceType {
+    Unknown
     Zip
     Folder
-    Unknown
 }
 
 enum NgSourceStatus {
+    NotStarted
     Deleted
     Read
     Copied
@@ -321,17 +322,41 @@ class NgOIOUBL {
         return $res
     }
 
-    [void] Delete (){
+    [PSCustomObject] Delete (){
+        $res = [PSCustomObject]@{
+            Success = @()
+            Skipped = @()
+            Failed = @()
+        }
         if ($this.Type -eq "Zip") {
-            [System.IO.File]::Delete($this.Source)
-            $this.Status = "Deleted"
+            try {
+                [System.IO.File]::Delete($this.Source)
+                $this.Status = "Deleted"
+                $res.Success += $this
+            }
+            catch {
+                $this.Status = "Failed"
+                $res.Failed += $this
+            }
+            
+            
         }
         elseif ($this.Type -eq "Folder") {
-            $this.Entries.OIOUBL | ForEach-Object {
-                [System.IO.File]::Delete($_.FullName)
-            }
             $this.Status = "Deleted"
+            ($this.Entries.Skipped + $this.Entries.Success) | ForEach-Object {
+                try {
+                    [System.IO.File]::Delete($_.FullName)
+                    $_.Status = "Deleted"
+                    $res.Success += $_
+                }
+                catch {
+                    $_.Status = "Failed"
+                    $res.Failed += $_
+                    $this.Status = "Failed"
+                }
+            }
         }
+        return $res
     }
 
     static [PSCustomObject] GetOIOUBLXmlFiles([string]$source, [bool]$Recurse) {
