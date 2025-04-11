@@ -165,17 +165,23 @@ function Write-NgLogMessage {
         $LevelPadded = $Level.PadRight($MaxLength)
 
         if ($Level -eq "Error"){$Results.Errors++}
-        
-        foreach ($M in $Message) {
-            $Date = Get-Date -Format "dd-MM-yyyy HH:mm:ss"
-            $FullM = "$Date | $LevelPadded - $M"
-            Add-Content -Path $LogFile -Value $FullM -Force
-            switch -wildcard ($M) {
-                "Skipped*" { Add-Content -Path  (Join-Path $LogFolder ("$($LogFilePrefix)duplicates_$StartTime.log")) -Value $M }
-                "Failed*" { Add-Content -Path (Join-Path $LogFolder ("$($LogFilePrefix)failed_$StartTime.log")) -Value $M }
-                "Success*" { Add-Content -Path (Join-Path $LogFolder ("$($LogFilePrefix)success_$StartTime.log")) -Value $M }
+        try {
+            foreach ($M in $Message) {
+                $Date = Get-Date -Format "dd-MM-yyyy HH:mm:ss"
+                $FullM = "$Date | $LevelPadded - $M"
+                Add-Content -Path $LogFile -Value $FullM -Force
+                switch -wildcard ($M) {
+                    "Skipped*" { Add-Content -Path  (Join-Path $LogFolder ("$($LogFilePrefix)duplicates_$StartTime.log")) -Value $M }
+                    "Failed*" { Add-Content -Path (Join-Path $LogFolder ("$($LogFilePrefix)failed_$StartTime.log")) -Value $M }
+                    "Success*" { Add-Content -Path (Join-Path $LogFolder ("$($LogFilePrefix)success_$StartTime.log")) -Value $M }
+                }
             }
         }
+        catch {
+            [System.Windows.Forms.MessageBox]::Show($THIS, "Failed - Please close the log file '$LogFile' and try again",'EAN Mover','OK','Error','Button1','ServiceNotification')
+            exit $_.Exception.Message
+        }
+        
     }
     
 }
@@ -423,61 +429,72 @@ function Move-OIOUBLFiles {
             if ($SourceRes) {
                 Write-NgLogMessage Information "-------------------------------------------------------------------[Clean up]-------------------------------------------------------------------"
                 foreach ($R in $SourceRes){
-                    Write-NgLogMessage -Level Information -Message "Cleaning up source '$($R.Source)'"
-                    switch ($R.Status) {
-                        "Proccessed" { 
-                            $DelRes = $R.delete() 
-                            if ($DelRes.failed.count -eq 0) {
-                                Write-NgLogMessage -Level Information -Message "Success: Deleted source file '$($R.Source)'"
-                            }
-                            else {
-                                $DelRes.failed | ForEach-Object {
-                                    Write-NgLogMessage -Level Warning -Message "Failed: to delete source file '$($R.Source)'"
-                                    $Results.FailedFiles++
+                    try {
+                        Write-NgLogMessage -Level Information -Message "Cleaning up source '$($R.Source)'"
+                        switch ($R.Status) {
+                            "Proccessed" { 
+                                $DelRes = $R.delete() 
+                                if ($DelRes.failed.count -eq 0) {
+                                    Write-NgLogMessage -Level Information -Message "Success: Deleted source file '$($R.Source)'"
+                                }
+                                else {
+                                    $DelRes.failed | ForEach-Object {
+                                        Write-NgLogMessage -Level Warning -Message "Failed: to delete source file '$($R.Source)'"
+                                        $Results.FailedFiles++
+                                    }
                                 }
                             }
-                        }
-                        "ProccessedWithOthers" { 
-                            $Deletes = $R.Entries.Skipped + $R.Entries.Success
-                            $DelRes = $R.BulkDeleteEntries($Deletes)
-                            if ($DelRes.failed.count -eq 0) {
-                                $DelRes.Success | ForEach-Object {
-                                    Write-NgLogMessage -Level Information -Message "Success: Deleted entry file '$($_.FullPath)'"
+                            "ProccessedWithOthers" { 
+                                $Deletes = $R.Entries.Skipped + $R.Entries.Success
+                                $DelRes = $R.BulkDeleteEntries($Deletes)
+                                if ($DelRes.failed.count -eq 0) {
+                                    $DelRes.Success | ForEach-Object {
+                                        Write-NgLogMessage -Level Information -Message "Success: Deleted entry file '$($_.FullPath)'"
+                                    }
+                                    
                                 }
-                                
-                            }
-                            else {
-                                $DelRes.failed | ForEach-Object {
-                                    Write-NgLogMessage -Level Warning -Message "Failed: to delete entry file '$($_.FullPath)'"
-                                    $Results.FailedFiles++
-                                }
-                            }
-                        }
-                        "ProccessedWithErrors" { 
-                            $Deletes = $R.Entries.Skipped + $R.Entries.Success
-                            $DelRes = $R.BulkDeleteEntries($Deletes) 
-                            if ($DelRes.failed.count -eq 0) {
-                                $DelRes.Success | ForEach-Object {
-                                    Write-NgLogMessage -Level Information -Message "Success: Deleted entry file '$($_.FullPath)'"
+                                else {
+                                    $DelRes.failed | ForEach-Object {
+                                        Write-NgLogMessage -Level Warning -Message "Failed: to delete entry file '$($_.FullPath)'"
+                                        $Results.FailedFiles++
+                                    }
                                 }
                             }
-                            else {
-                                $DelRes.failed | ForEach-Object {
-                                    Write-NgLogMessage -Level Warning -Message "Failed: to delete entry file '$($_.FullPath)'"
-                                    $Results.FailedFiles++
+                            "ProccessedWithErrors" { 
+                                $Deletes = $R.Entries.Skipped + $R.Entries.Success
+                                $DelRes = $R.BulkDeleteEntries($Deletes) 
+                                if ($DelRes.failed.count -eq 0) {
+                                    $DelRes.Success | ForEach-Object {
+                                        Write-NgLogMessage -Level Information -Message "Success: Deleted entry file '$($_.FullPath)'"
+                                    }
+                                }
+                                else {
+                                    $DelRes.failed | ForEach-Object {
+                                        Write-NgLogMessage -Level Warning -Message "Failed: to delete entry file '$($_.FullPath)'"
+                                        $Results.FailedFiles++
+                                    }
                                 }
                             }
-                        }
-                        "Unknown" {
-                            Write-NgLogMessage -Level Error -Message "Failed: Could not determine status of move operation for source '$($R.Source)'"
-                            $Results.FailedFiles++
+                            "Unknown" {
+                                Write-NgLogMessage -Level Error -Message "Failed: Could not determine status of move operation for source '$($R.Source)'"
+                                $Results.FailedFiles++
+                            }
                         }
                     }
+                    catch {
+                        Write-NgLogMessage -Level Error -Message "Failed: Could not clean up source '$($R.Source)'"
+                        Write-NgLogMessage -Level Error -Message "$_"
+                        $Results.FailedFiles++
+                        $Source.Status = "Failed"
+                    }
+                    
                 }   
             }
         }
         catch {
+            $Results.FailedFiles++
             Write-NgLogMessage -Level Error -Message "Failed: Move-OIOUBLFiles failed to delete moved and skipped files"
+            Write-NgLogMessage -Level Error -Message "$_"
             Write-NgLogMessage -Level Error -Message "----------------------------------------------------------------[Clean up - Failed]----------------------------------------------------------------"
         }
 
@@ -561,7 +578,7 @@ function Get-OIOUBL {
             $Results.FailedFiles++
         }
         else {
-            Write-NgLogMessage -Level Information -Message "OIOUBL XML files '$($Out.OIOUBLCountCount)' found in Source '$($Out.Source)'"
+            Write-NgLogMessage -Level Information -Message "OIOUBL XML files '$($Out.OIOUBLCount)' found in Source '$($Out.Source)'"
             $Results.TotalOIOUBL += $Out.OIOUBLCount
 
             if ($Out.OtherCount -ne 0) {
