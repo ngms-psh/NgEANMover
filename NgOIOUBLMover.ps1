@@ -436,12 +436,12 @@ function Move-OIOUBLFiles {
                                 $DelRes = $R.delete() 
                                 if ($R.status -eq "Deleted") {
                                     $DelRes.Success | ForEach-Object {
-                                        Write-NgLogMessage -Level Information -Message "Success: Deleted source file '$($DelRes.FullName)'"
+                                        Write-NgLogMessage -Level Information -Message "Success: Deleted source file '$(if($_.FullName){ $_.FullName } else { $_.Source })'"
                                     }
                                 }
                                 else {
                                     $DelRes.failed | ForEach-Object {
-                                        Write-NgLogMessage -Level Warning -Message "Failed: to delete source file '$($DelRes.FullName)'"
+                                        Write-NgLogMessage -Level Warning -Message "Failed: to delete source file '$(if($_.FullName){ $_.FullName } else { $_.Source })'"
                                         $Results.FailedFiles++
                                     }
                                 }
