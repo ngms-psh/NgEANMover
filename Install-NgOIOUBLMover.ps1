@@ -301,7 +301,7 @@ function Install-NgFiles {
     
             try {
                 write-host "ps2exe will now complice source files to EXE" -ForegroundColor Yellow
-                Invoke-ps2exe -inputFile $Compile -outputFile "$($Compile -replace '.ps1','.exe')" -title "EAN Mover" -company "NgMS Consult ApS" -version "2.0" -product "NgOIOUBLMover" -noConsole -copyright "Copyright (c) 2024 - Phillip Schjeldal Hansen | NgMS Consult ApS. All rights reserved." -longPaths -iconFile (Join-Path -Path $InstallPath -ChildPath $Icon) -configFile
+                Invoke-ps2exe -inputFile $Compile -outputFile "$($Compile -replace '.ps1','.exe')" -title "EAN Mover" -company "NgMS Consult ApS" -version "2.0" -product "NgOIOUBLMover" -noConsole -copyright "Copyright (c) 2024 - Phillip Schjeldal Hansen | NgMS Consult ApS. All rights reserved." -longPaths -iconFile (Join-Path -Path $InstallPath -ChildPath $Icon) -configFile -verbose
                 Write-Host "Success: Compiled NgOIOUBLMover.exe" -ForegroundColor Green
                 write-NgLogMessage -Message "Created executable NgOIOUBLMover.exe" -Level Information
             }
@@ -309,7 +309,7 @@ function Install-NgFiles {
                 write-host "Error: Failed to compile NgOIOUBLMover.exe`nTerminating installation" -ForegroundColor Red
                 write-NgLogMessage -Message "Unable to create executable $_" -Level Error
                 Write-Error "Install-NgFiles: Unable to create executable $_"
-                return $_
+                throw $_
             }
         }
     }
